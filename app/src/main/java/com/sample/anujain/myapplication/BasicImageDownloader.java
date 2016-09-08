@@ -155,6 +155,7 @@ public class BasicImageDownloader {
 
             @Override
             protected void onProgressUpdate(Integer... values) {
+                Log.d("@@@fromdownloader@@@@", String.valueOf(values[0]));
                 mImageLoaderListener.onProgressChange(values[0]);
             }
 
@@ -180,6 +181,7 @@ public class BasicImageDownloader {
                         int count;
                         long read = 0;
                         while ((count = is.read(bytes)) != -1) {
+                            Log.d("@@inside while@@@", imageUrl);
                             read += count;
                             out.write(bytes, 0, count);
                             publishProgress((int) ((read * 100) / length));
