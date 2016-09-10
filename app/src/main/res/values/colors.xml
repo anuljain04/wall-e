@@ -5,4 +5,7 @@
     <color name="colorAccent">#F44336</color>
     <color name="colorFAB1">#2196F3</color>
     <color name="colorFAB2">#E040FB</color>
+    <color name="liteGreen">#8BC34A</color>
+    <color name="amber">#FFA000</color>
+    <color name="grey">#757575</color>
 </resources>

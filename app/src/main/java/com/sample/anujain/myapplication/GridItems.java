@@ -6,11 +6,11 @@ import android.graphics.Bitmap;
  * Created by anujain on 9/4/2016.
  */
 public class GridItems {
-    Bitmap ImageId;
+    Bitmap bitmapImage;
     String label;
 
     public GridItems(Bitmap id, String text) {
-        ImageId = id;
+        bitmapImage = id;
         label = text;
     }
 }

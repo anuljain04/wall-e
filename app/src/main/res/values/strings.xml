@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">My Application</string>
+    <string name="dialog_title">About us</string>
+    <string name="dialog_message">This App is made by Anul</string>
     <string-array name="images">
         <item>sample_1</item>
         <item>sample_2</item>

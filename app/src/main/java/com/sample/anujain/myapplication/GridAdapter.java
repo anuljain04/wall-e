@@ -55,7 +55,7 @@ public class GridAdapter extends BaseAdapter {
             holder = (viewholder) convertView.getTag();
         }
         GridItems item = items.get(position);
-        holder.image.setImageBitmap(item.ImageId);
+        holder.image.setImageBitmap(item.bitmapImage);
         holder.text.setText(item.label);
         return convertView;
     }

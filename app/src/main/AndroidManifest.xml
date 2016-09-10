@@ -16,8 +16,24 @@
             </intent-filter>
         </activity>
         <activity android:name=".DetailsActivity"></activity>
+
+        <receiver android:name=".bootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+        <service
+            android:name=".autoWallpaper"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="change" />
+            </intent-filter>
+        </service>
     </application>
 
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
 </manifest>

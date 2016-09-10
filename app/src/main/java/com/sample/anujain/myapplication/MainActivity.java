@@ -1,10 +1,19 @@
 package com.sample.anujain.myapplication;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -13,6 +22,7 @@ import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -22,6 +32,7 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 
 public class MainActivity extends AppCompatActivity implements BasicImageDownloader.OnImageLoaderListener, AdapterView.OnItemClickListener, View.OnClickListener {
 
@@ -38,7 +49,7 @@ public class MainActivity extends AppCompatActivity implements BasicImageDownloa
     private Animation fab_open, fab_close, rotate_forward, rotate_backward;
     private ProgressBar mProgress;
     private int mProgressStatus = 0;
-    private Handler mHandler = new Handler();
+    private Handler mHandler;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,6 +57,18 @@ public class MainActivity extends AppCompatActivity implements BasicImageDownloa
         adapter = new GridAdapter(getApplicationContext(), R.id.gridview, items);
         mygrid = (GridView) findViewById(R.id.gridview);
         mygrid.setAdapter(adapter);
+        mHandler = new Handler(Looper.getMainLooper()) {
+            @Override
+            public void handleMessage(Message msg) {
+                GridItems item = (GridItems) msg.obj;
+                items.add(item);
+                adapter.notifyDataSetChanged();
+                mProgressStatus += 20;
+                if (mProgressStatus == 100) {
+                    mProgress.setVisibility(View.GONE);
+                }
+            }
+        };
         mProgress = (ProgressBar) findViewById(R.id.progress);
         RequestQueue queue = Volley.newRequestQueue(this);
         fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -95,8 +118,6 @@ public class MainActivity extends AppCompatActivity implements BasicImageDownloa
         for (String imageLink : images) {
             downloader.download(imageLink, false);
         }
-        mProgress.setProgress(mProgress.getMax());
-        mProgress.setVisibility(View.GONE);
     }
 
 
@@ -111,15 +132,9 @@ public class MainActivity extends AppCompatActivity implements BasicImageDownloa
 
     @Override
     public void onComplete(GridItems result) {
-        Log.d("@@@@@@", "completed bitmap download");
-        items.add(result);
-        adapter.notifyDataSetChanged();
-        mHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                mProgress.setProgress(mProgressStatus += 20);
-            }
-        });
+        Message msg = new Message();
+        msg.obj = result;
+        mHandler.handleMessage(msg);
     }
 
     @Override
@@ -127,7 +142,7 @@ public class MainActivity extends AppCompatActivity implements BasicImageDownloa
         GridItems item = (GridItems) parent.getItemAtPosition(position);
         //Create intent
         Intent intent = new Intent(MainActivity.this, DetailsActivity.class);
-        Global.img = item.ImageId;
+        Global.img = item.bitmapImage;
         intent.putExtra("title", item.label);
         //Start details activity
         startActivity(intent);
@@ -135,27 +150,85 @@ public class MainActivity extends AppCompatActivity implements BasicImageDownloa
 
     @Override
     public void onClick(View v) {
+        AlarmManager alarmMgr = (AlarmManager) getSystemService(ALARM_SERVICE);
+        Intent i = new Intent(this, autoWallpaper.class);
+        PendingIntent pending = PendingIntent.getBroadcast(this, 0, i, 0);
+        i.setAction("change");
         int id = v.getId();
+        Snackbar snackbar = Snackbar.make(v, "AutoChange Enabled !!!", Snackbar.LENGTH_LONG);
         switch (id) {
             case R.id.fab:
-                animateFAB();
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        animateFAB();
+                    }
+                });
                 break;
             case R.id.fab1:
-
-                Log.d("Raj", "Fab 1");
+                SharedPreferences prefs = this.getSharedPreferences(
+                        "com.sample.anujain.myapplication", Context.MODE_PRIVATE);
+                String autochangeProp = "com.example.app.autochange";
+                // use a default value using new Date()
+                boolean autochange = prefs.getBoolean(autochangeProp, false);
+                if (autochange) {
+                    prefs.edit().putBoolean(autochangeProp, false).apply();
+                    //make it off
+                    if (alarmMgr != null) {
+                        alarmMgr.cancel(pending);
+                    }
+                    // get snackbar view
+                    View snackbarView = snackbar.getView();
+                    snackbarView.setBackgroundColor(getResources().getColor(R.color.grey));
+// change snackbar text color
+                    int snackbarTextId = android.support.design.R.id.snackbar_text;
+                    TextView textView = (TextView) snackbarView.findViewById(snackbarTextId);
+                    textView.setTextColor(getResources().getColor(R.color.colorAccent));
+                    textView.setText("AutoChange disabled !!!!");
+                    snackbar.show();
+                    //stop the service
+                    fab1.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorAccent)));
+                    //change the color of button to red
+                } else {
+                    prefs.edit().putBoolean(autochangeProp, true).apply();
+                    //make it on
+                    // Set the alarm to start at approximately 00:00 midnight.
+                    Calendar calendar = Calendar.getInstance();
+                    calendar.setTimeInMillis(System.currentTimeMillis());
+                    calendar.set(Calendar.HOUR_OF_DAY, 24);
+                    // With setInexactRepeating(), you have to use one of the AlarmManager interval
+                    // constants--in this case, AlarmManager.INTERVAL_DAY.
+                    alarmMgr.setInexactRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
+                            AlarmManager.INTERVAL_DAY, pending);
+                    //start the service
+                    fab1.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.liteGreen)));
+                    //change the color of button to green
+                    // get snackbar view
+                    View snackbarView = snackbar.getView();
+                    snackbarView.setBackgroundColor(getResources().getColor(R.color.grey));
+                    // change snackbar text color
+                    int snackbarTextId = android.support.design.R.id.snackbar_text;
+                    TextView textView = (TextView) snackbarView.findViewById(snackbarTextId);
+                    textView.setText("AutoChange enabled !!!!");
+                    textView.setTextColor(getResources().getColor(R.color.liteGreen));
+                    snackbar.show();
+                }
                 break;
             case R.id.fab2:
-
-                Log.d("Raj", "Fab 2");
+                //display about us dialog
+                AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.MyDialogTheme);
+                builder.setTitle(getString(R.string.dialog_title));
+                builder.setMessage(getString(R.string.dialog_message));
+                AlertDialog dialog = builder.create();
+// display dialog
+                dialog.show();
                 break;
         }
     }
 
 
     public void animateFAB() {
-
         if (isFabOpen) {
-
             fab.startAnimation(rotate_backward);
             fab1.startAnimation(fab_close);
             fab2.startAnimation(fab_close);
@@ -163,9 +236,7 @@ public class MainActivity extends AppCompatActivity implements BasicImageDownloa
             fab2.setClickable(false);
             isFabOpen = false;
             Log.d("Raj", "close");
-
         } else {
-
             fab.startAnimation(rotate_forward);
             fab1.startAnimation(fab_open);
             fab2.startAnimation(fab_open);
@@ -173,7 +244,6 @@ public class MainActivity extends AppCompatActivity implements BasicImageDownloa
             fab2.setClickable(true);
             isFabOpen = true;
             Log.d("Raj", "open");
-
         }
     }
 }
